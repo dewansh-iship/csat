@@ -1,0 +1,36 @@
+[
+  { "code": "O1", "section": "ONBOARD", "serviceArea": "Shipboard Management", "text": "Does the shipboard management team possess adequate technical skills?" },
+  { "code": "O2", "section": "ONBOARD", "serviceArea": "Shipboard Management", "text": "Does the shipboard management team possess adequate commercial understanding, including dealing with your customers?" },
+  { "code": "O3", "section": "ONBOARD", "serviceArea": "Shipboard Management", "text": "Does the shipboard management team provide you with relevant communication in timely and proficient manner?" },
+
+  { "code": "O4", "section": "ONBOARD", "serviceArea": "Cargo", "text": "Is the cargo operation and handling, including intake, satisfactory?" },
+  { "code": "O5", "section": "ONBOARD", "serviceArea": "Cargo", "text": "Is the cargo documentation prepared and forwarded to your satisfaction?" },
+
+  { "code": "O6", "section": "ONBOARD", "serviceArea": "Operations", "text": "Is the speed, consumption and performance as expected?" },
+
+  { "code": "O7", "section": "ONBOARD", "serviceArea": "Vessel Maintenance", "text": "Is the vessel’s asset value maintained to your expectations?" },
+  { "code": "O8", "section": "ONBOARD", "serviceArea": "Vessel Maintenance", "text": "Is maintenance planned to minimise impact on commercial operations?" },
+  { "code": "O9", "section": "ONBOARD", "serviceArea": "Vessel Maintenance", "text": "Is the visual appearance of the vessel to your satisfaction?" },
+
+  { "code": "O10", "section": "ONBOARD", "serviceArea": "Dry-docking", "text": "Is the preparation done timely and sufficient?" },
+  { "code": "O11", "section": "ONBOARD", "serviceArea": "Dry-docking", "text": "Is the flow information during dry-docking adequate?" },
+  { "code": "O12", "section": "ONBOARD", "serviceArea": "Dry-docking", "text": "Is the technical and economical reporting after the dry-docking adequate?" },
+
+  { "code": "A1", "section": "ASHORE", "serviceArea": "Responsiveness", "text": "Do your problems receive proper attention?" },
+  { "code": "A2", "section": "ASHORE", "serviceArea": "Responsiveness", "text": "Are problems solved expediently?" },
+  { "code": "A3", "section": "ASHORE", "serviceArea": "Responsiveness", "text": "Is the Company proactive in identifying potential problem areas?" },
+
+  { "code": "A4", "section": "ASHORE", "serviceArea": "Operating costs", "text": "Are operating costs at an acceptable and competitive level?" },
+  { "code": "A5", "section": "ASHORE", "serviceArea": "Operating costs", "text": "Is the budgetting procedure done in timely and satisfactory manner?" },
+  { "code": "A6", "section": "ASHORE", "serviceArea": "Operating costs", "text": "Is the actual spending maintained within agreed budget?" },
+  { "code": "A7", "section": "ASHORE", "serviceArea": "Operating costs", "text": "Is the AFE (Authorisation for Expenditure) procedure adhered to?" },
+
+  { "code": "A8", "section": "ASHORE", "serviceArea": "Reporting", "text": "Do you receive agreed reports timely?" },
+  { "code": "A9", "section": "ASHORE", "serviceArea": "Reporting", "text": "Do the reports provide you with sufficient detailed breakdown of costs?" },
+  { "code": "A10", "section": "ASHORE", "serviceArea": "Reporting", "text": "Do the reports provide you with sufficient explanations to developments?" },
+
+  { "code": "A11", "section": "ASHORE", "serviceArea": "Overall", "text": "Do you feel the Company services are overall satisfactory?" },
+  { "code": "A12", "section": "ASHORE", "serviceArea": "Overall", "text": "Do you feel that the Company is generating value for money?" },
+
+  { "code": "A13", "section": "ASHORE", "serviceArea": "Trust", "text": "Do you trust the Company’s ability as a ship manager?" }
+]

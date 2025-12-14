@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(1100px 650px at 15% 10%, rgba(255,255,255,0.98), rgba(241,245,249,0.35) 60%),
+    radial-gradient(900px 560px at 85% 20%, rgba(255,255,255,0.92), rgba(241,245,249,0.22) 55%),
+    linear-gradient(180deg, #ffffff, #f6f7fb 40%, #ffffff 100%);
+  color: #0f172a;
+}
+
+/* Liquid-glass surface (Apple-ish) */
+.glass {
+  backdrop-filter: blur(22px) saturate(180%);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  background: rgba(255,255,255,0.78);
+  border: 1px solid rgba(15,23,42,0.10);
+  border-radius: 24px;
+  box-shadow:
+    0 18px 55px rgba(15,23,42,0.10),
+    inset 0 1px 0 rgba(255,255,255,0.65);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95), transparent 45%),
+    radial-gradient(circle at 70% 60%, rgba(255,255,255,0.65), transparent 55%),
+    linear-gradient(135deg, rgba(255,255,255,0.20), transparent 40%, rgba(255,255,255,0.16));
+  transform: rotate(12deg);
+  opacity: 0.55;
+  pointer-events: none;
+  animation: floatGlow 10s ease-in-out infinite;
+}
+
+@keyframes floatGlow {
+  0%   { transform: translate3d(-2%, -1%, 0) rotate(10deg); opacity: 0.42; }
+  50%  { transform: translate3d( 2%,  1%, 0) rotate(14deg); opacity: 0.62; }
+  100% { transform: translate3d(-2%, -1%, 0) rotate(10deg); opacity: 0.42; }
+}
+
+.pill {
+  background: rgba(15,23,42,0.04);
+  border: 1px solid rgba(15,23,42,0.08);
+  border-radius: 999px;
+}
+
+.input {
+  @apply w-full px-3 py-2 rounded-2xl bg-white/70 border border-black/10 focus:outline-none focus:ring-2 focus:ring-black/10;
+}
+
+.select {
+  @apply w-full px-3 py-2 rounded-2xl bg-white/70 border border-black/10 focus:outline-none focus:ring-2 focus:ring-black/10;
+}
+
+.btn {
+  @apply px-4 py-2 rounded-2xl font-semibold bg-slate-900 text-white hover:opacity-95 disabled:opacity-40 disabled:cursor-not-allowed;
+}
+
+.btn2 {
+  @apply px-4 py-2 rounded-2xl font-semibold bg-white/60 border border-black/10 hover:bg-white/85;
+}
+
+.kpi, .chart {
+  background: rgba(255,255,255,0.62);
+  border: 1px solid rgba(15,23,42,0.10);
+  border-radius: 22px;
+}
+
+/* Hero shimmer */
+.shimmer { position: relative; }
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background: linear-gradient(120deg,
+    transparent 35%,
+    rgba(255,255,255,0.75) 45%,
+    transparent 55%
+  );
+  transform: translateX(-35%) rotate(12deg);
+  opacity: 0.25;
+  pointer-events: none;
+  animation: shimmerSweep 6.5s ease-in-out infinite;
+}
+@keyframes shimmerSweep {
+  0%   { transform: translateX(-35%) rotate(12deg); opacity: 0.18; }
+  40%  { transform: translateX(35%) rotate(12deg);  opacity: 0.45; }
+  100% { transform: translateX(35%) rotate(12deg);  opacity: 0.18; }
+}
