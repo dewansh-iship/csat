@@ -202,11 +202,8 @@ export default function Survey() {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // OTP
+  // Email-only submission (no OTP)
   const [email, setEmail] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const [otp, setOtp] = useState("");
-  const [verified, setVerified] = useState(false);
 
   const [busy, setBusy] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -244,35 +241,8 @@ export default function Survey() {
     }));
   }
 
-  async function sendOtp() {
-    setBusy(true);
-    try {
-      await postJSON("/otp/send", { email });
-      setOtpSent(true);
-      alert("OTP sent to your email.");
-    } catch (e) {
-      alert(e.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function verifyOtp() {
-    setBusy(true);
-    try {
-      await postJSON("/otp/verify", { email, otp });
-      setVerified(true);
-      alert("Verified! Submit is unlocked.");
-    } catch (e) {
-      alert(e.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function submit() {
-    if (!verified) { alert("Please verify email via OTP first."); return; }
-    if (submitted) return;
+    if (!email) { alert("Please enter your email."); return; }
 
     setBusy(true);
     try {
@@ -291,12 +261,13 @@ export default function Survey() {
 
       const res = await postJSON(
         "/submit",
-        { meta, answers: payloadAnswers },
+        { meta, answers: payloadAnswers, email },
         { headers: { "X-Email": email } }
       );
 
       alert(`Submitted. Overall score: ${res.scores.overall}%`);
-      setSubmitted(true);
+      // Allow multiple submissions; keep the form editable after submit
+      setSubmitted(false);
     } catch (e) {
       alert(e.message || "Submit failed");
     } finally {
@@ -315,19 +286,16 @@ export default function Survey() {
               Customer Satisfaction Survey
             </div>
             <div className="mt-2 text-slate-600">
-              White liquid-glass UI • OTP locked submission • Slider 0–5 (0–2 Low, 3 Acceptable, 4–5 High)
+              White liquid-glass UI • Email-only submission • Slider 0–5 (0–2 Low, 3 Acceptable, 4–5 High)
             </div>
-          </div>
-          <div className={"pill px-3 py-1 text-sm font-semibold " + (verified ? "text-emerald-700" : "text-amber-700")}>
-            {verified ? "Verified" : "Not verified"}
           </div>
         </div>
       </div>
 
       <div className="glass noise p-6 space-y-4">
         <div>
-          <div className="text-lg font-semibold text-slate-900">Step 1 — Email OTP Verification</div>
-          <div className="text-slate-600 text-sm">Enter email, send OTP, verify OTP. Controls lock after each step.</div>
+          <div className="text-lg font-semibold text-slate-900">Email</div>
+          <div className="text-slate-600 text-sm">Enter your email address to associate this submission.</div>
         </div>
 
         <div className="grid md:grid-cols-3 gap-3 items-end">
@@ -336,37 +304,14 @@ export default function Survey() {
             <input
               className="input"
               value={email}
-              disabled={otpSent || verified || submitted}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@company.com"
             />
           </div>
-          {!otpSent && !submitted && (
-            <button className="btn" onClick={sendOtp} disabled={busy || !email}>
-              {busy ? "Sending..." : "Send OTP"}
-            </button>
-          )}
+          <button className="btn" onClick={submit} disabled={busy || !email}>
+            {busy ? "Submitting..." : "Submit Survey"}
+          </button>
         </div>
-
-        {otpSent && (
-          <div className="grid md:grid-cols-3 gap-3 items-end">
-            <div className="md:col-span-2">
-              <div className="text-xs text-slate-600 mb-1">OTP</div>
-              <input
-                className="input"
-                value={otp}
-                disabled={verified || submitted}
-                onChange={(e) => setOtp(e.target.value)}
-                placeholder="6-digit OTP"
-              />
-            </div>
-            {!verified && !submitted && (
-              <button className="btn" onClick={verifyOtp} disabled={busy || !otp}>
-                {busy ? "Verifying..." : "Verify"}
-              </button>
-            )}
-          </div>
-        )}
       </div>
 
       <div className="glass noise p-6 space-y-3">
@@ -392,15 +337,6 @@ export default function Survey() {
 
       <Section title="Onboard" grouped={grouped.ONBOARD} answers={answers} setA={setA} />
       <Section title="Ashore" grouped={grouped.ASHORE} answers={answers} setA={setA} />
-
-      <div className="glass noise p-6 flex items-center justify-between gap-4 flex-wrap">
-        <div className="text-slate-600 text-sm">
-          {submitted ? "✅ Submitted successfully. You cannot edit email or resubmit." : "Submit is enabled only after OTP verification."}
-        </div>
-        <button className="btn" onClick={submit} disabled={!verified || busy || submitted}>
-          {submitted ? "Submitted" : (busy ? "Submitting..." : "Submit Survey")}
-        </button>
-      </div>
     </div>
   );
 }

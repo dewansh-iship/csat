@@ -4,9 +4,12 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "node --watch index.js"
-  },
+  "start": "node index.js",
+   "dev": "node --watch index.js",
+  "postinstall": "npm rebuild better-sqlite3 --build-from-source"
+}, 
+
+
   "dependencies": {
     "better-sqlite3": "^11.6.0",
     "cors": "^2.8.5",
@@ -16,4 +19,6 @@
     "nodemailer": "^7.0.11",
     "zod": "^3.23.8"
   }
+  
 }
+

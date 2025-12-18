@@ -7,14 +7,11 @@ import path from "node:path";
 import { z } from "zod";
 
 import { openDb } from "./db.js";
-import { nowMs, sha256, genOtp6, jsonParseSafe } from "./utils.js";
-import { sendOtpEmail } from "./mailer.js";
+import { nowMs, jsonParseSafe } from "./utils.js";
 import { computeScores } from "./score.js";
 
 const PORT = Number(process.env.PORT || 4000);
 const APP_ORIGIN = process.env.APP_ORIGIN || "http://localhost:5173";
-const OTP_TTL_MINUTES = Number(process.env.OTP_TTL_MINUTES || 10);
-const OTP_RATE_LIMIT_PER_HOUR = Number(process.env.OTP_RATE_LIMIT_PER_HOUR || 8);
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@example.com";
@@ -40,19 +37,9 @@ fs.watch(path.dirname(QUESTIONS_PATH), { persistent: false }, () => {
 });
 
 // ---- Helpers ----
-function requireVerifiedEmail(req, res, next) {
-  const email = req.header("X-Email");
+function requireEmail(req, res, next) {
+  const email = (req.header("X-Email") || "").toLowerCase().trim();
   if (!email) return res.status(400).json({ error: "Missing X-Email header" });
-
-  // latest otp for email must be verified and not expired
-  const row = db.prepare(
-    "SELECT * FROM otp_codes WHERE email=? ORDER BY created_at DESC LIMIT 1"
-  ).get(email);
-
-  if (!row) return res.status(401).json({ error: "OTP not requested for this email" });
-  if (!row.verified_at) return res.status(401).json({ error: "Email not verified" });
-  if (row.expires_at < nowMs()) return res.status(401).json({ error: "OTP expired" });
-
   req.email = email;
   next();
 }
@@ -77,64 +64,6 @@ app.get("/questions", (_req, res) => {
   res.json({ questions: QUESTIONS });
 });
 
-const SendOtpSchema = z.object({ email: z.string().email() });
-app.post("/otp/send", (req, res) => {
-  const parsed = SendOtpSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Invalid email", issues: parsed.error.issues });
-
-  const email = parsed.data.email.toLowerCase().trim();
-
-  // rate limit: count in last hour
-  const oneHourAgo = nowMs() - 60 * 60 * 1000;
-  const cnt = db.prepare("SELECT COUNT(*) as c FROM otp_codes WHERE email=? AND created_at>=?").get(email, oneHourAgo).c;
-  if (cnt >= OTP_RATE_LIMIT_PER_HOUR) {
-    return res.status(429).json({ error: "Too many OTP requests. Please try later." });
-  }
-
-  const code = genOtp6();
-  const code_hash = sha256(code);
-  const created_at = nowMs();
-  const expires_at = created_at + OTP_TTL_MINUTES * 60 * 1000;
-
-  db.prepare("INSERT INTO otp_codes(email, code_hash, created_at, expires_at) VALUES(?,?,?,?)")
-    .run(email, code_hash, created_at, expires_at);
-
-  // respond quickly, send mail async
-  res.json({ ok: true, message: "OTP sent" });
-
-  setImmediate(async () => {
-    try {
-      await sendOtpEmail({ to: email, code });
-    } catch (e) {
-      console.error("OTP email send failed:", e?.message || e);
-    }
-  });
-});
-
-const VerifyOtpSchema = z.object({ email: z.string().email(), otp: z.string().min(4).max(10) });
-app.post("/otp/verify", (req, res) => {
-  const parsed = VerifyOtpSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Invalid payload", issues: parsed.error.issues });
-
-  const email = parsed.data.email.toLowerCase().trim();
-  const otp = parsed.data.otp.trim();
-
-  const row = db.prepare("SELECT * FROM otp_codes WHERE email=? ORDER BY created_at DESC LIMIT 1").get(email);
-  if (!row) return res.status(400).json({ error: "OTP not found, please request again." });
-  if (row.expires_at < nowMs()) return res.status(400).json({ error: "OTP expired, please request again." });
-  if (row.verified_at) return res.json({ ok: true, message: "Already verified" });
-
-  if (row.attempts >= 6) return res.status(429).json({ error: "Too many attempts. Request a new OTP." });
-
-  const ok = sha256(otp) === row.code_hash;
-  db.prepare("UPDATE otp_codes SET attempts = attempts + 1 WHERE id=?").run(row.id);
-
-  if (!ok) return res.status(400).json({ error: "Invalid OTP" });
-
-  db.prepare("UPDATE otp_codes SET verified_at=? WHERE id=?").run(nowMs(), row.id);
-  res.json({ ok: true, message: "Verified" });
-});
-
 const SubmitSchema = z.object({
   meta: z.object({
     vessel: z.string().optional().default(""),
@@ -150,15 +79,11 @@ const SubmitSchema = z.object({
   })),
 });
 
-app.post("/submit", requireVerifiedEmail, (req, res) => {
+app.post("/submit", requireEmail, (req, res) => {
   const parsed = SubmitSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid payload", issues: parsed.error.issues });
 
   const body = parsed.data;
-
-  // Enforce 1 submission per email
-  const existing = db.prepare("SELECT id FROM submissions WHERE email=? LIMIT 1").get(req.email);
-  if (existing) return res.status(409).json({ error: "Submission already exists for this email." });
 
   for (const a of body.answers) {
     if (a.relevant && (!a.importance || a.satisfaction === undefined || a.satisfaction === null)) {
@@ -237,7 +162,7 @@ app.get("/admin/stats", adminAuth, (_req, res) => {
   res.json({ series });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`Backend running on ${PORT}`);
   console.log(`Allowed origin: ${APP_ORIGIN}`);
 });
