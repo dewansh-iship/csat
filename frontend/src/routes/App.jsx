@@ -43,7 +43,7 @@ export default function App() {
       </main>
 
       <footer className="max-w-6xl mx-auto px-4 py-6 text-sm text-slate-500">
-        © {new Date().getFullYear()} UMMS CSAT Survey • Version 1 - Designed & Developed By Samarth Mathur
+        © {new Date().getFullYear()} UMMS CSAT Survey • Version 1 - Copyrights Reserved @UMMS
       </footer>
     </div>
   );
