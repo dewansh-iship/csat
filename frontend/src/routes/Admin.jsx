@@ -364,6 +364,10 @@ export default function Admin() {
                   <div className="text-sm">
                     <div className="font-semibold">{it.email}</div>
                     <div className="text-slate-600 text-xs">{new Date(it.created_at).toLocaleString()}</div>
+                    <div className="text-slate-500 text-[11px] mt-1">
+                      {it.remark ? "📝 Remark" : ""}{it.remark && it.file_path ? " • " : ""}{it.file_path ? "📎 Attachment" : ""}
+                      {!it.remark && !it.file_path ? "—" : ""}
+                    </div>
                   </div>
                   <div className="font-semibold">{(it.scores?.overall || 0).toFixed(0)}%</div>
                 </div>
@@ -437,6 +441,8 @@ export default function Admin() {
                 <th className="text-left p-2">Overall</th>
                 <th className="text-left p-2">Onboard</th>
                 <th className="text-left p-2">Ashore</th>
+                <th className="text-left p-2">Remark</th>
+                <th className="text-left p-2">Attachment</th>
                 <th className="text-left p-2">Open</th>
               </tr>
             </thead>
@@ -448,12 +454,27 @@ export default function Admin() {
                   <td className="p-2 font-semibold">{(it.scores?.overall || 0).toFixed(0)}%</td>
                   <td className="p-2">{(it.scores?.onboard || 0).toFixed(0)}%</td>
                   <td className="p-2">{(it.scores?.ashore || 0).toFixed(0)}%</td>
+                  <td className="p-2 text-slate-700">
+                    {it.remark ? (it.remark.length > 60 ? it.remark.slice(0, 60) + "…" : it.remark) : "—"}
+                  </td>
+                  <td className="p-2">
+                    {it.file_path ? (
+                      <a
+                        className="text-slate-900 underline"
+                        href={`${import.meta.env.VITE_API_BASE}${it.file_path}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        View File
+                      </a>
+                    ) : "—"}
+                  </td>
                   <td className="p-2">
                     <Link className="btn2" to={`/admin/view/${it.id}`} state={{ token }}>View</Link>
                   </td>
                 </tr>
               )) : (
-                <tr><td className="p-2" colSpan="6">No submissions yet.</td></tr>
+                <tr><td className="p-2" colSpan="8">No submissions yet.</td></tr>
               )}
             </tbody>
           </table>

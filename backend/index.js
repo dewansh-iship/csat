@@ -4,6 +4,7 @@ import cors from "cors";
 import jwt from "jsonwebtoken";
 import fs from "node:fs";
 import path from "node:path";
+import multer from "multer";
 import { z } from "zod";
 
 import { openDb } from "./db.js";
@@ -36,6 +37,26 @@ fs.watch(path.dirname(QUESTIONS_PATH), { persistent: false }, () => {
   try { QUESTIONS = loadQuestions(); } catch {}
 });
 
+// ---- Uploads (local) ----
+const UPLOADS_DIR = path.join(process.cwd(), "uploads");
+fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+// Serve uploaded files
+app.use("/uploads", express.static(UPLOADS_DIR));
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
+    filename: (_req, file, cb) => {
+      const safe = String(file.originalname || "file")
+        .replace(/[^a-zA-Z0-9._-]/g, "_")
+        .slice(0, 140);
+      cb(null, `${Date.now()}-${safe}`);
+    },
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+});
+
 // ---- Helpers ----
 function requireEmail(req, res, next) {
   const email = (req.header("X-Email") || "").toLowerCase().trim();
@@ -65,6 +86,7 @@ app.get("/questions", (_req, res) => {
 });
 
 const SubmitSchema = z.object({
+  remark: z.string().max(2000).optional().default(""),
   meta: z.object({
     vessel: z.string().optional().default(""),
     customerOwner: z.string().optional().default(""),
@@ -79,11 +101,19 @@ const SubmitSchema = z.object({
   })),
 });
 
-app.post("/submit", requireEmail, (req, res) => {
-  const parsed = SubmitSchema.safeParse(req.body);
+app.post("/submit", requireEmail, upload.single("file"), (req, res) => {
+  // Support multipart/form-data: meta/answers are JSON strings in req.body
+  const rawMeta = typeof req.body.meta === "string" ? JSON.parse(req.body.meta || "{}") : (req.body.meta || {});
+  const rawAnswers = typeof req.body.answers === "string" ? JSON.parse(req.body.answers || "[]") : (req.body.answers || []);
+  const rawRemark = typeof req.body.remark === "string" ? req.body.remark : "";
+
+  const parsed = SubmitSchema.safeParse({ meta: rawMeta, answers: rawAnswers, remark: rawRemark });
   if (!parsed.success) return res.status(400).json({ error: "Invalid payload", issues: parsed.error.issues });
 
   const body = parsed.data;
+
+  const remark_text = (body.remark || "").trim();
+  const file_path = req.file ? `/uploads/${req.file.filename}` : null;
 
   for (const a of body.answers) {
     if (a.relevant && (!a.importance || a.satisfaction === undefined || a.satisfaction === null)) {
@@ -100,9 +130,17 @@ app.post("/submit", requireEmail, (req, res) => {
   const scores_json = JSON.stringify(scores);
 
   const created_at = nowMs();
-  const info = db.prepare(
-    "INSERT INTO submissions(email, meta_json, answers_json, scores_json, created_at) VALUES(?,?,?,?,?)"
-  ).run(req.email, meta_json, answers_json, scores_json, created_at);
+  let info;
+  try {
+    info = db.prepare(
+      "INSERT INTO submissions(email, meta_json, answers_json, scores_json, remark_text, file_path, created_at) VALUES(?,?,?,?,?,?,?)"
+    ).run(req.email, meta_json, answers_json, scores_json, remark_text || null, file_path, created_at);
+  } catch {
+    // Backward-compatible if DB schema not migrated yet
+    info = db.prepare(
+      "INSERT INTO submissions(email, meta_json, answers_json, scores_json, created_at) VALUES(?,?,?,?,?)"
+    ).run(req.email, meta_json, answers_json, scores_json, created_at);
+  }
 
   res.json({ ok: true, id: info.lastInsertRowid, scores });
 });
@@ -133,6 +171,8 @@ app.get("/admin/submissions", adminAuth, (req, res) => {
       created_at: r.created_at,
       scores,
       meta: jsonParseSafe(r.meta_json, {}),
+      remark: r.remark_text || "",
+      file_path: r.file_path || null,
     };
   });
   res.json({ items });
@@ -150,6 +190,8 @@ app.get("/admin/submissions/:id", adminAuth, (req, res) => {
     answers: jsonParseSafe(r.answers_json, []),
     scores: jsonParseSafe(r.scores_json, {}),
     questions: QUESTIONS,
+    remark: r.remark_text || "",
+    file_path: r.file_path || null,
   });
 });
 

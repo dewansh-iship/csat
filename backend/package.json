@@ -4,21 +4,18 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-  "start": "node index.js",
-   "dev": "node --watch index.js",
-  "postinstall": "npm rebuild better-sqlite3 --build-from-source"
-}, 
-
-
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "postinstall": "npm rebuild better-sqlite3 --build-from-source"
+  },
   "dependencies": {
     "better-sqlite3": "^11.6.0",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
+    "dotenv": "^16.6.1",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
     "nodemailer": "^7.0.11",
     "zod": "^3.23.8"
   }
-  
 }
-

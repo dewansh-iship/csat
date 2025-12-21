@@ -11,6 +11,12 @@ function mapToLabel0to5(v) {
   return "High";
 }
 
+function fileUrl(file_path) {
+  if (!file_path) return null;
+  const base = (import.meta.env.VITE_API_BASE || "").replace(/\/$/, "");
+  return `${base}${file_path}`;
+}
+
 export default function AdminView() {
   const { id } = useParams();
   const loc = useLocation();
@@ -75,6 +81,31 @@ export default function AdminView() {
         <div className="kpi p-5">
           <div className="text-slate-600 text-sm">Ashore</div>
           <div className="text-3xl font-semibold text-slate-900">{(s.ashore||0).toFixed(2)}%</div>
+        </div>
+      </div>
+
+      <div className="glass p-6 space-y-4">
+        <div>
+          <div className="font-semibold text-slate-900">Remark</div>
+          <div className="text-slate-700 text-sm whitespace-pre-wrap mt-2">
+            {data.remark ? data.remark : "—"}
+          </div>
+        </div>
+
+        <div>
+          <div className="font-semibold text-slate-900">Attachment</div>
+          {data.file_path ? (
+            <a
+              className="btn2 inline-flex mt-2"
+              href={fileUrl(data.file_path)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open / Download
+            </a>
+          ) : (
+            <div className="text-slate-500 text-sm mt-2">—</div>
+          )}
         </div>
       </div>
 

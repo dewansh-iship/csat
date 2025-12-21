@@ -15,26 +15,19 @@ export function openDb() {
 
 function migrate(db) {
   db.exec(`
-    CREATE TABLE IF NOT EXISTS otp_codes (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT NOT NULL,
-      code_hash TEXT NOT NULL,
-      created_at INTEGER NOT NULL,
-      expires_at INTEGER NOT NULL,
-      verified_at INTEGER,
-      attempts INTEGER NOT NULL DEFAULT 0
-    );
-    CREATE INDEX IF NOT EXISTS idx_otp_email_created ON otp_codes(email, created_at DESC);
-
     CREATE TABLE IF NOT EXISTS submissions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       email TEXT NOT NULL,
       meta_json TEXT NOT NULL,
       answers_json TEXT NOT NULL,
       scores_json TEXT NOT NULL,
+      remark_text TEXT,
+      file_path TEXT,
       created_at INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_submissions_email ON submissions(email);
     CREATE INDEX IF NOT EXISTS idx_submissions_created ON submissions(created_at DESC);
   `);
+  try { db.exec("ALTER TABLE submissions ADD COLUMN remark_text TEXT"); } catch {}
+  try { db.exec("ALTER TABLE submissions ADD COLUMN file_path TEXT"); } catch {}
 }

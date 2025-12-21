@@ -53,9 +53,34 @@ function scoreLabel(v) {
 
 function Slider({ value, onChange, disabled }) {
   const v = clamp(value ?? 3, 0, 5);
-  // (A) Slider glow color and intensity based on value
-  const glow = v <= 2 ? "239 68 68" : v === 3 ? "234 179 8" : "34 197 94"; // rgb without commas
-  const glowA = v <= 2 ? 0.22 : v === 3 ? 0.18 : 0.20;
+  // (A) Softer glow color and intensity based on value (stepped)
+  // 0–1 coral, 2 amber, 3 orange, 4 green, 5 deep green
+  const glow =
+    v <= 1 ? "248 113 113" :     // coral
+    v === 2 ? "245 158 11" :     // amber
+    v === 3 ? "249 115 22" :     // orange
+    v === 4 ? "34 197 94" :      // green
+    "22 163 74";                // deep green (5)
+
+  // (B) Track fill (stepped) — avoid heavy red dominance
+  // 0–1: coral only
+  // 2: coral → amber
+  // 3: amber → orange (no green)
+  // 4: orange → green
+  // 5: green → deep green
+  const fill =
+    v <= 1
+      ? "linear-gradient(90deg, rgba(248,113,113,0.95) 0%, rgba(248,113,113,0.95) 100%)"
+      : v === 2
+        ? "linear-gradient(90deg, rgba(248,113,113,0.55) 0%, rgba(248,113,113,0.55) 55%, rgba(245,158,11,0.95) 100%)"
+        : v === 3
+          ? "linear-gradient(90deg, rgba(245,158,11,0.70) 0%, rgba(245,158,11,0.70) 55%, rgba(249,115,22,0.95) 100%)"
+          : v === 4
+            ? "linear-gradient(90deg, rgba(249,115,22,0.65) 0%, rgba(249,115,22,0.65) 45%, rgba(34,197,94,0.95) 100%)"
+            : "linear-gradient(90deg, rgba(34,197,94,0.70) 0%, rgba(34,197,94,0.70) 55%, rgba(22,163,74,0.98) 100%)";
+
+  // Slightly softer glow overall
+  const glowA = v <= 1 ? 0.16 : v === 2 ? 0.14 : v === 3 ? 0.13 : v === 4 ? 0.12 : 0.14;
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between text-xs text-slate-600">
@@ -75,6 +100,7 @@ function Slider({ value, onChange, disabled }) {
         className="sat-range w-full"
         style={{
           "--pct": `${(v / 5) * 100}%`,
+          "--fill": fill,
           "--glow": glow,
           "--glowA": glowA,
         }}
@@ -94,19 +120,13 @@ function Slider({ value, onChange, disabled }) {
         .sat-range::-webkit-slider-runnable-track {
           height: 10px;
           border-radius: 999px;
+          /* Base track (always neutral) + Filled track (colored) */
           background:
-            linear-gradient(90deg,
-              #ef4444 0%,
-              #f97316 25%,
-              #eab308 45%,
-              #84cc16 65%,
-              #22c55e 100%
-            ),
-            linear-gradient(rgba(15,23,42,0.10), rgba(15,23,42,0.10));
-          background-size: var(--pct) 100%, calc(100% - var(--pct)) 100%;
-          background-position: left, right;
-          background-repeat: no-repeat;
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+            linear-gradient(180deg, rgba(15,23,42,0.10), rgba(15,23,42,0.06)) 0 0/100% 100% no-repeat,
+            var(--fill) 0 0/var(--pct) 100% no-repeat;
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.70),
+            inset 0 0 0 1px rgba(15,23,42,0.06);
         }
 
         /* Thumb — Safari/Chrome */
@@ -145,19 +165,13 @@ function Slider({ value, onChange, disabled }) {
         .sat-range::-moz-range-track {
           height: 10px;
           border-radius: 999px;
+          /* Base track (always neutral) + Filled track (colored) */
           background:
-            linear-gradient(90deg,
-              #ef4444 0%,
-              #f97316 25%,
-              #eab308 45%,
-              #84cc16 65%,
-              #22c55e 100%
-            ),
-            linear-gradient(rgba(15,23,42,0.10), rgba(15,23,42,0.10));
-          background-size: var(--pct) 100%, calc(100% - var(--pct)) 100%;
-          background-position: left, right;
-          background-repeat: no-repeat;
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+            linear-gradient(180deg, rgba(15,23,42,0.10), rgba(15,23,42,0.06)) 0 0/100% 100% no-repeat,
+            var(--fill) 0 0/var(--pct) 100% no-repeat;
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.70),
+            inset 0 0 0 1px rgba(15,23,42,0.06);
         }
 
         .sat-range::-moz-range-thumb {
@@ -192,6 +206,7 @@ function Slider({ value, onChange, disabled }) {
         .sat-range:disabled::-webkit-slider-runnable-track,
         .sat-range:disabled::-moz-range-track {
           background: rgba(15,23,42,0.10);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.55);
         }
       `}</style>
     </div>
@@ -204,6 +219,8 @@ export default function Survey() {
 
   // Email-only submission (no OTP)
   const [email, setEmail] = useState("");
+  const [remark, setRemark] = useState("");
+  const [attachment, setAttachment] = useState(null);
 
   const [busy, setBusy] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -259,15 +276,26 @@ export default function Survey() {
         };
       });
 
-      const res = await postJSON(
-        "/submit",
-        { meta, answers: payloadAnswers, email },
-        { headers: { "X-Email": email } }
-      );
+      const fd = new FormData();
+      fd.append("email", email.trim().toLowerCase());
+      fd.append("meta", JSON.stringify(meta));
+      fd.append("answers", JSON.stringify(payloadAnswers));
+      if (remark.trim()) fd.append("remark", remark.trim());
+      if (attachment) fd.append("file", attachment);
 
-      alert(`Submitted. Overall score: ${res.scores.overall}%`);
-      // Allow multiple submissions; keep the form editable after submit
+      const res = await fetch(`${import.meta.env.VITE_API_BASE}/submit`, {
+        method: "POST",
+        headers: { "X-Email": email.trim().toLowerCase() },
+        body: fd,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Submit failed");
+
+      alert(`Submitted. Overall score: ${data.scores.overall}%`);
       setSubmitted(false);
+      setRemark("");
+      setAttachment(null);
     } catch (e) {
       alert(e.message || "Submit failed");
     } finally {
@@ -292,27 +320,6 @@ export default function Survey() {
         </div>
       </div>
 
-      <div className="glass noise p-6 space-y-4">
-        <div>
-          <div className="text-lg font-semibold text-slate-900">Email</div>
-          <div className="text-slate-600 text-sm">Enter your email address to associate this submission.</div>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-3 items-end">
-          <div className="md:col-span-2">
-            <div className="text-xs text-slate-600 mb-1">Email</div>
-            <input
-              className="input"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@company.com"
-            />
-          </div>
-          <button className="btn" onClick={submit} disabled={busy || !email}>
-            {busy ? "Submitting..." : "Submit Survey"}
-          </button>
-        </div>
-      </div>
 
       <div className="glass noise p-6 space-y-3">
         <div className="text-lg font-semibold text-slate-900">Step 2 — Details (optional)</div>
@@ -337,6 +344,49 @@ export default function Survey() {
 
       <Section title="Onboard" grouped={grouped.ONBOARD} answers={answers} setA={setA} />
       <Section title="Ashore" grouped={grouped.ASHORE} answers={answers} setA={setA} />
+
+      <div className="glass noise p-6 space-y-5">
+        <div className="text-xl font-semibold text-slate-900">Final Submission</div>
+
+        <div>
+          <div className="text-xs text-slate-600 mb-1">Comment / Remark (optional)</div>
+          <textarea
+            className="input min-h-[120px]"
+            value={remark}
+            onChange={(e) => setRemark(e.target.value)}
+            placeholder="Any additional comments or suggestions..."
+          />
+        </div>
+
+        <div>
+          <div className="text-xs text-slate-600 mb-1">Attach file or photo (optional)</div>
+          <input
+            type="file"
+            accept="image/*,.pdf,.doc,.docx"
+            onChange={(e) => setAttachment(e.target.files?.[0] || null)}
+          />
+          {attachment && (
+            <div className="mt-1 text-xs text-slate-500">
+              Selected: <b>{attachment.name}</b> ({Math.round(attachment.size / 1024)} KB)
+            </div>
+          )}
+        </div>
+
+        <div className="border-t border-black/10 pt-4 grid md:grid-cols-3 gap-3 items-end">
+          <div className="md:col-span-2">
+            <div className="text-xs text-slate-600 mb-1">Email</div>
+            <input
+              className="input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@company.com"
+            />
+          </div>
+          <button className="btn" onClick={submit} disabled={busy || !email}>
+            {busy ? "Submitting..." : "Submit Survey"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -28,3 +28,15 @@ export async function postJSON(path, body, options = {}) {
   if (!res.ok) throw new Error(await parseErr(res));
   return res.json();
 }
+
+export async function postForm(path, formData, options = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    ...options,
+    // ❗ DO NOT set Content-Type — browser sets multipart boundary automatically
+    body: formData,
+  });
+
+  if (!res.ok) throw new Error(await parseErr(res));
+  return res.json();
+}
