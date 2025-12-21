@@ -195,6 +195,28 @@ app.get("/admin/submissions/:id", adminAuth, (req, res) => {
   });
 });
 
+// Delete a submission (admin only)
+app.delete("/admin/submissions/:id", adminAuth, (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) return res.status(400).json({ error: "Invalid id" });
+
+  const r = db.prepare("SELECT id, file_path FROM submissions WHERE id=?").get(id);
+  if (!r) return res.status(404).json({ error: "Not found" });
+
+  // If an uploaded file exists, delete it from disk (best-effort)
+  if (r.file_path) {
+    try {
+      // r.file_path is stored like `/uploads/<filename>`
+      const rel = String(r.file_path).replace(/^\/+/, "");
+      const abs = path.join(process.cwd(), rel);
+      fs.unlink(abs, () => {});
+    } catch {}
+  }
+
+  const info = db.prepare("DELETE FROM submissions WHERE id=?").run(id);
+  return res.json({ ok: true, deleted: info.changes, id });
+});
+
 app.get("/admin/stats", adminAuth, (_req, res) => {
   const rows = db.prepare("SELECT scores_json, created_at FROM submissions ORDER BY created_at ASC").all();
   const series = rows.map((r) => {
