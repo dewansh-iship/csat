@@ -205,6 +205,28 @@ export default function Admin() {
     }
   }
 
+  async function deleteSubmission(id) {
+    if (!id) return;
+    const ok = window.confirm("Delete this submission? This cannot be undone.");
+    if (!ok) return;
+
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE}/admin/submissions/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Delete failed");
+
+      // Optimistic UI update
+      setItems((prev) => prev.filter((x) => x.id !== id));
+      // refresh stats/series to keep charts consistent
+      await load(token);
+    } catch (e) {
+      alert(e.message || "Delete failed");
+    }
+  }
+
   function logout() {
     localStorage.removeItem("admin_token");
     setToken("");
@@ -369,7 +391,19 @@ export default function Admin() {
                       {!it.remark && !it.file_path ? "—" : ""}
                     </div>
                   </div>
-                  <div className="font-semibold">{(it.scores?.overall || 0).toFixed(0)}%</div>
+                  <div className="flex items-center gap-2">
+                    <div className="font-semibold">{(it.scores?.overall || 0).toFixed(0)}%</div>
+                    <Link className="btn2" to={`/admin/view/${it.id}`} state={{ token }}>View</Link>
+                    <button
+                      className="btn2"
+                      type="button"
+                      onClick={() => deleteSubmission(it.id)}
+                      title="Delete submission"
+                      style={{ borderColor: "rgba(239,68,68,0.35)", color: "#b91c1c" }}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -444,6 +478,7 @@ export default function Admin() {
                 <th className="text-left p-2">Remark</th>
                 <th className="text-left p-2">Attachment</th>
                 <th className="text-left p-2">Open</th>
+                <th className="text-left p-2">Delete</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black/10">
@@ -472,9 +507,19 @@ export default function Admin() {
                   <td className="p-2">
                     <Link className="btn2" to={`/admin/view/${it.id}`} state={{ token }}>View</Link>
                   </td>
+                  <td className="p-2">
+                    <button
+                      className="btn2"
+                      type="button"
+                      onClick={() => deleteSubmission(it.id)}
+                      style={{ borderColor: "rgba(239,68,68,0.35)", color: "#b91c1c" }}
+                    >
+                      Delete
+                    </button>
+                  </td>
                 </tr>
               )) : (
-                <tr><td className="p-2" colSpan="8">No submissions yet.</td></tr>
+                <tr><td className="p-2" colSpan="9">No submissions yet.</td></tr>
               )}
             </tbody>
           </table>
